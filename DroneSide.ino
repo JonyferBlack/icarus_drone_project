@@ -1,4 +1,4 @@
-#include <Servo.h>
+﻿#include <Servo.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <nRF24L01.h>
@@ -6,10 +6,9 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
 #include <FaBo9Axis_MPU9250.h>
-
-namespace SmartDroneProject {
 	//MPU
 	FaBo9Axis mpu;                           // mpu interface object
+	
 	float ypr[3] = { 0.0f,0.0f,0.0f };       // yaw pitch roll values
 
 	Servo FL, FR, BL, BR;
@@ -32,44 +31,75 @@ namespace SmartDroneProject {
 		BL.attach(5, 1000, 2000);
 		BR.attach(6, 1000, 2000);
 
+		ResetEngines();
+
 		Serial.begin(115200);
 		initializeRX();
 		initMPU();
-
-		mpu_yaw = 0.0;
-		rc_yaw = 0.0;
-		mpu_pitch = 0.0;
-		rc_pitch = 0.0;
-		mpu_roll = 0.0;
-		rc_roll = 0.0;
-		rc_input_limit = 30;
 	}
 
+	
 
+	const int LowEdge = 1050;
+	const int HighEdge = 2000;
+	const long TimeIntervalMillisecs = 100;
+
+	int i = LowEdge;
+
+	bool _motionAllowed = true;
+	unsigned long _previousMillis = 0;
 
 	void loop()
 	{
+		if (Serial.available() > 0)
+		{
+			int flag = Serial.parseInt();
+			_motionAllowed = flag != 0;
+			Serial.print("Specified flag: ");
+			Serial.println(flag);
+		}
+//		readRX();
 
-		readRX();
-
-		mpu.readGyroXYZ(&gx, &gy, &gz);
-		gyro_yaw = -gz / 16.4;
-		gyro_pitch = -gy / 16.4;
-		gyro_roll = gx / 16.4;
-
-		getYPR();
-		mpu_yaw = ypr[0] * 180 / M_PI;
-		mpu_pitch = ypr[1] * 180 / M_PI;
-		mpu_roll = ypr[2] * 180 / M_PI;
-
+//		mpu.readGyroXYZ(&gx, &gy, &gz);
 
 		//debug();
-		processing();
+//		processing();
 
-		FL.writeMicroseconds(pwm_FL);
-		FR.writeMicroseconds(pwm_FR);
-		BL.writeMicroseconds(pwm_BL);
-		BR.writeMicroseconds(pwm_BR);
-
+		if (_motionAllowed) {
+			RotateEngines();
+		}
+		else
+		{
+			ResetEngines();
+		}
 	}
-}
+
+	void RotateEngines() {
+	
+		unsigned long currentMillis = millis();
+
+		if (currentMillis - _previousMillis >= TimeIntervalMillisecs) {
+			// save the last time you blinked the LED
+			_previousMillis = currentMillis;
+
+			if (i >= HighEdge) i = LowEdge;
+
+			FL.writeMicroseconds(i);
+			FR.writeMicroseconds(i);;
+			BL.writeMicroseconds(i);
+			BR.writeMicroseconds(i);
+			Serial.println(i);
+			Serial.println(i * 10);
+			i++;
+		}
+
+		//ResetEngines();
+	}
+
+	void ResetEngines() {
+		FL.write(0);
+		FR.write(0);;
+		BL.write(0);
+		BR.write(0);
+		Serial.println("Engines reset");
+	}

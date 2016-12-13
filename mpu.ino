@@ -1,14 +1,12 @@
 //mpu
-namespace SmartDroneProject {
-	
 	void getYPR()
 	{
-		bool mpuIntStatus = mpu.checkDataReady();
+	//	bool mpuIntStatus = mpu.checkDataReady();
 
-		if (mpuIntStatus)
-		{
-			mpu.readAccelXYZ(&ypr[0], &ypr[1], &ypr[2]);
-		}
+	//	if (mpuIntStatus)
+//		{
+			//mpu.readAccelXYZ(&ypr[0], &ypr[1], &ypr[2]);
+	//	}
 	}
 
 	inline void dmpDataReady() 
@@ -18,7 +16,9 @@ namespace SmartDroneProject {
 	void initMPU()
 	{
 		Wire.begin();
-		if (!mpu.searchDevice) return;
+		Serial.println(F("Trying to init MPU"));
+		if (!mpu.searchDevice()) return;
 		mpu.begin();
+		mpu.configMPU9250();
+		Serial.println(F("Mpu ready"));
 	}
-}

@@ -1,5 +1,3 @@
-namespace SmartDroneProject {
-	
 	const uint64_t pipeIn = 0xE8E8F0F0E1LL;
 	RF24 radio(9, 10);
 
@@ -76,19 +74,13 @@ namespace SmartDroneProject {
 
 
 	void map_receivedData() {
-
-		rc_throttle = map(nrf24Data.rc_throttle, 0, 255, 1000, 2000);
-		rc_yaw = map(nrf24Data.yaw, 0, 255, -150, 150);
-		rc_pitch = map(nrf24Data.pitch, 0, 255, -rc_input_limit, rc_input_limit);
-		rc_roll = map(nrf24Data.roll, 0, 255, -rc_input_limit, rc_input_limit);
-
 	}
 
 	unsigned long lastRecvTime = 0;
 
 	void readRX()
 	{
-		ackPayload.rc_throttle = rc_throttle;
+/*		ackPayload.rc_throttle = rc_throttle;
 		ackPayload.pwm_FL = pwm_FL;
 		ackPayload.pwm_FR = pwm_FR;
 		ackPayload.pwm_BL = pwm_BL;
@@ -98,7 +90,7 @@ namespace SmartDroneProject {
 		ackPayload.roll = mpu_roll;
 		ackPayload.gyro_yaw = gyro_yaw;
 		ackPayload.gyro_pitch = gyro_pitch;
-		ackPayload.gyro_roll = gyro_roll;
+		ackPayload.gyro_roll = gyro_roll;*/
 
 
 		//Read Radio Data
@@ -114,14 +106,11 @@ namespace SmartDroneProject {
 			resetData();
 		}
 
-		rc_throttle = map(nrf24Data.rc_throttle, 0, 255, 1000, 2000);
+		/*rc_throttle = map(nrf24Data.rc_throttle, 0, 255, 1000, 2000);
 		rc_yaw = map(nrf24Data.yaw, 0, 255, -40, 40);
 		rc_pitch = map(nrf24Data.pitch, 0, 255, -rc_input_limit, rc_input_limit);
-		rc_roll = map(nrf24Data.roll, 0, 255, -rc_input_limit, rc_input_limit);
+		rc_roll = map(nrf24Data.roll, 0, 255, -rc_input_limit, rc_input_limit);*/
 	}
-}
-
-
 
 
 

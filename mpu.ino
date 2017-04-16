@@ -20,5 +20,6 @@
 		if (!mpu.searchDevice()) return;
 		mpu.begin();
 		mpu.configMPU9250();
+		mpu.configAK8963();
 		Serial.println(F("Mpu ready"));
 	}

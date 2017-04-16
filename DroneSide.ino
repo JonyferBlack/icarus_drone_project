@@ -22,6 +22,8 @@
 
 	float gyro_yaw, gyro_pitch, gyro_roll;
 	float gx, gy, gz; //Gyro values
+	float ax, ay, az;
+	float mx, my, mz;
 	//MPU6050 accelgyro;
 
 	void setup()
@@ -31,17 +33,25 @@
 		BL.attach(5, 1000, 2000);
 		BR.attach(6, 1000, 2000);
 
-		ResetEngines();
+		resetEngines();
 
 		Serial.begin(115200);
-		initializeRX();
+		Serial.setTimeout(5);
+//		initializeRX();
 		initMPU();
 	}
 
-	
+	void startCalibration() {
+		for (int i = 0; i < 100; i++)
+		{
+			mpu.readGyroXYZ(&gx, &gy, &gz);
+			mpu.readAccelXYZ(&ax, &ay, &az);
+			mpu.readMagnetXYZ(&mx, &my, &mz);
+		}
+	}
 
 	const int LowEdge = 1050;
-	const int HighEdge = 2000;
+	const int HighEdge = 1500;
 	const long TimeIntervalMillisecs = 100;
 
 	int i = LowEdge;
@@ -49,54 +59,120 @@
 	bool _motionAllowed = true;
 	unsigned long _previousMillis = 0;
 
+	String s;
+	byte message[5];
+
+	int _suspendsCount;
+
+	void suspend() {
+		_suspendsCount++;
+	}
+
+	void resume() {
+		_suspendsCount--;
+	}
+
+	bool suspended() {
+		return _suspendsCount > 0;
+	}
+
 	void loop()
 	{
-		if (Serial.available() > 0)
-		{
-			int flag = Serial.parseInt();
-			_motionAllowed = flag != 0;
-			Serial.print("Specified flag: ");
-			Serial.println(flag);
+		if (mpu.checkDataReady() && !suspended()) {
+			mpu.readGyroXYZ(&gx, &gy, &gz);
+			mpu.readAccelXYZ(&ax, &ay, &az);
+			mpu.readMagnetXYZ(&mx, &my, &mz);
 		}
-//		readRX();
+		
+	//	RotateEngines();
+	}
 
-//		mpu.readGyroXYZ(&gx, &gy, &gz);
+	void serialEvent() {
+		suspend();
+		s = Serial.readString();
+		parseSerialData();
+		resume();
+	}
 
-		//debug();
-//		processing();
-
-		if (_motionAllowed) {
-			RotateEngines();
-		}
-		else
+	void proccesMessage() {
+		if (message[0] == 16)
 		{
-			ResetEngines();
+			//Detect Command type
+			switch (message[1])
+			{
+			case 126:
+			{
+				Serial.print(gx);
+				Serial.print("@");
+				Serial.print(gy);
+				Serial.print("@");
+				Serial.print(gz);
+				Serial.print("@");
+				Serial.print(ax);
+				Serial.print("@");
+				Serial.print(ay);
+				Serial.print("@");
+				Serial.print(az);
+				Serial.print("@");
+				Serial.print(mx);
+				Serial.print("@");
+				Serial.print(my);
+				Serial.print("@");
+				Serial.println(mz);
+				break;
+			}
+			case 127:
+				//Say hello
+				Serial.println("HELLO FROM ARDUINO");
+				break;
+			}
 		}
 	}
 
-	void RotateEngines() {
-	
+	void clearMessage() {
+		for (int i = 0; i < 5; i++)
+			message[i] = 0;
+	}
+
+	void fillMessage() {
+		byte offset = s.indexOf(16);
+		if (offset != -1 && s.length() >= offset + 5)
+		{
+			for (int i = 0; i < 5; i++) {
+				message[i] = s.charAt(i + offset);
+			}
+		}
+	}
+
+	void parseSerialData() {
+		fillMessage();
+		proccesMessage();
+		clearMessage();
+	}
+
+	void rotateEngines() {
+
 		unsigned long currentMillis = millis();
 
 		if (currentMillis - _previousMillis >= TimeIntervalMillisecs) {
 			// save the last time you blinked the LED
 			_previousMillis = currentMillis;
 
-			if (i >= HighEdge) i = LowEdge;
+			if (i >= HighEdge) {
+				i = LowEdge;
+				resetEngines();
+			}
 
 			FL.writeMicroseconds(i);
 			FR.writeMicroseconds(i);;
 			BL.writeMicroseconds(i);
 			BR.writeMicroseconds(i);
 			Serial.println(i);
-			Serial.println(i * 10);
 			i++;
 		}
-
-		//ResetEngines();
 	}
 
-	void ResetEngines() {
+	void resetEngines() {
 		FL.write(0);
 		FR.write(0);;
 		BL.write(0);

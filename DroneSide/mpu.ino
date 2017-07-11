@@ -17,9 +17,14 @@
 	{
 		Wire.begin();
 		Serial.println(F("Trying to init MPU"));
-		if (!mpu.searchDevice()) return;
+		if (!mpu.searchDevice())
+		{
+			Serial.println(F("Failed to init MPU: device wasn't found"));
+			return;
+		}
 		mpu.begin();
 		mpu.configMPU9250();
 		mpu.configAK8963();
 		Serial.println(F("Mpu ready"));
 	}
+	

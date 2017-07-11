@@ -14,7 +14,6 @@
 	Servo FL, FR, BL, BR;
 
 	float sampletime;
-	int rc_throttle;
 	int rc_input_limit;
 	float pwm_FL, pwm_FR, pwm_BL, pwm_BR;
 	float rc_yaw, rc_pitch, rc_roll;
@@ -26,19 +25,44 @@
 	float mx, my, mz;
 	//MPU6050 accelgyro;
 
+	const byte zeroPwm = 0;
+	const int LowEdge = 1000;
+	const int HighEdge = LowEdge + 1000;
+	const long TimeIntervalMillisecs = 100;
+	const int Start = 1250;
+	const int End = Start + 100;
+
+	int i = Start;
+
+	int rc_throttle = 1250;
+
+	void proccesCounter(int *i) {
+		if (*i >= End) {
+			*i = Start;
+			resetEngines();
+		}
+	}
+
+	bool _motionAllowed = false;
+	unsigned long _previousMillis = 0;
+
+	String s;
+	byte message[5];
+
 	void setup()
 	{
-		FL.attach(3, 1000, 2000);
-		FR.attach(4, 1000, 2000);
-		BL.attach(5, 1000, 2000);
-		BR.attach(6, 1000, 2000);
-
-		resetEngines();
-
 		Serial.begin(115200);
-		Serial.setTimeout(5);
-//		initializeRX();
+		Serial.println("Begin setup");
+		FL.attach(3, LowEdge, HighEdge);
+		FR.attach(4, LowEdge, HighEdge);
+		BL.attach(5, LowEdge, HighEdge);
+		BR.attach(6, LowEdge, HighEdge);
+		resetEngines();
+		Serial.setTimeout(10);
+		//		initializeRX();
 		initMPU();
+		Serial.println("Setup completed");
+		FL.writeMicroseconds(0); //ESC accepts value of speed and maintain this value by itself
 	}
 
 	void startCalibration() {
@@ -49,18 +73,6 @@
 			mpu.readMagnetXYZ(&mx, &my, &mz);
 		}
 	}
-
-	const int LowEdge = 1050;
-	const int HighEdge = 1500;
-	const long TimeIntervalMillisecs = 100;
-
-	int i = LowEdge;
-
-	bool _motionAllowed = true;
-	unsigned long _previousMillis = 0;
-
-	String s;
-	byte message[5];
 
 	int _suspendsCount;
 
@@ -84,7 +96,7 @@
 			mpu.readMagnetXYZ(&mx, &my, &mz);
 		}
 		
-	//	RotateEngines();
+		rotateEngines();
 	}
 
 	void serialEvent() {
@@ -150,32 +162,31 @@
 		clearMessage();
 	}
 
-	void rotateEngines() {
+	unsigned long currentMillis;
 
-		unsigned long currentMillis = millis();
+	void rotateEngines() {
+		
+		if (!_motionAllowed) return;
+
+		currentMillis = millis();
 
 		if (currentMillis - _previousMillis >= TimeIntervalMillisecs) {
-			// save the last time you blinked the LED
 			_previousMillis = currentMillis;
-
-			if (i >= HighEdge) {
-				i = LowEdge;
-				resetEngines();
-			}
-
-			FL.writeMicroseconds(i);
-			FR.writeMicroseconds(i);;
-			BL.writeMicroseconds(i);
-			BR.writeMicroseconds(i);
-			Serial.println(i);
+			proccesCounter(&i);
+			writeEngines(&i);
 			i++;
 		}
 	}
 
+	void writeEngines(int *i) {
+		FL.writeMicroseconds(*i);
+		FR.writeMicroseconds(*i);;
+		BL.writeMicroseconds(*i);
+		BR.writeMicroseconds(*i);
+		Serial.println(*i);
+	}
+
 	void resetEngines() {
-		FL.write(0);
-		FR.write(0);;
-		BL.write(0);
-		BR.write(0);
+		writeEngines(zeroPwm);
 		Serial.println("Engines reset");
 	}

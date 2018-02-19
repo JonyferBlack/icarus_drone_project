@@ -27,7 +27,7 @@
 
 	const byte zeroPwm = 0;
 	const int LowEdge = 1000;
-	const int HighEdge = LowEdge + 1000;
+	const int HighEdge = LowEdge + 1200;
 	const long TimeIntervalMillisecs = 100;
 	const int Start = 1250;
 	const int End = Start + 100;
@@ -43,7 +43,7 @@
 		}
 	}
 
-	bool _motionAllowed = false;
+	bool _motionAllowed = true;
 	unsigned long _previousMillis = 0;
 
 	String s;
@@ -62,7 +62,7 @@
 		//		initializeRX();
 		initMPU();
 		Serial.println("Setup completed");
-		FL.writeMicroseconds(0); //ESC accepts value of speed and maintain this value by itself
+		//FL.writeMicroseconds(0); //ESC accepts value of speed and maintain this value by itself
 	}
 
 	void startCalibration() {
@@ -173,8 +173,11 @@
 		if (currentMillis - _previousMillis >= TimeIntervalMillisecs) {
 			_previousMillis = currentMillis;
 			proccesCounter(&i);
-			writeEngines(&i);
+			//writeEngines(&i);
+			BL.writeMicroseconds(i);
 			i++;
+			_motionAllowed = false;
+			//Serial.println("Engine speed set");
 		}
 	}
 
